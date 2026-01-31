@@ -31,17 +31,11 @@ pipeline {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
                     sh '''
-                    sonar-scanner \
-                      -Dsonar.projectKey=${My-Project} \
-                      -Dsonar.sources=. \
-                      -Dsonar.language=python \
-                      -Dsonar.python.version=3 \
-                      -Dsonar.sourceEncoding=UTF-8
+                    sonar-scanner -Dsonar.login=squ_119334b3cd0ce4e2321275f0ce754c84cba7aec8
                     '''
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 2, unit: 'MINUTES') {
@@ -54,7 +48,6 @@ pipeline {
             steps {
                 sh '''
                 . ${VENV}/bin/activate
-                pkill gunicorn || true
                 gunicorn app:app --bind 0.0.0.0:5000 --daemon
                 '''
             }
