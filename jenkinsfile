@@ -29,7 +29,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                withSonarQubeEnv("SonarQube") {
                     sh '''
                     sonar-scanner -Dsonar.login=squ_119334b3cd0ce4e2321275f0ce754c84cba7aec8
                     '''
