@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    environment {
+        SONARQUBE_ENV = 'SonarQube'     // Name from Jenkins config
+        PROJECT_NAME = 'python-app'
+        VENV = 'venv'
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/MahendraGubagundam/flask.git'
+            }
+        }
+
+        stage('Setup Python Environment') {
+            steps {
+                sh '''
+                python3 -m venv ${VENV}
+                . ${VENV}/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                . ${VENV}/bin/activate
+                pytest || true
+                '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh '''
+                    sonar-scanner \
+                      -Dsonar.projectKey=${My-Project} \
+                      -Dsonar.sources=. \
+                      -Dsonar.language=python \
+                      -Dsonar.python.version=3 \
+                      -Dsonar.sourceEncoding=UTF-8
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                . ${VENV}/bin/activate
+                pkill gunicorn || true
+                gunicorn app:app --bind 0.0.0.0:5000 --daemon
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment and SonarQube scan completed successfully"
+        }
+        failure {
+            echo "❌ Pipeline failed"
+        }
+    }
+}
+
